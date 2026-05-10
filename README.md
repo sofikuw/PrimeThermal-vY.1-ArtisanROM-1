@@ -13,7 +13,7 @@ Dual-sensor logic (Skin + Core) + auto CPU frequency control.
 - Safe & reversible (no bootloop risk)
 
 ## 📥 Installation
-1. Download ZIP from [Releases](https://github.com/твой_ник/PrimeThermal/releases)
+1. Download ZIP
 2. Flash via Magisk/KernelSU or TWRP
 3. Reboot
 
