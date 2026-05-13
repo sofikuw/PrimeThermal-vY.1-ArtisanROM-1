@@ -42,67 +42,61 @@ Three consecutive readings from `/proc/stat` are averaged. Load percentage, comb
 
 ### ▼ ACTIVE mode thermal steps (progressive)
 
----
-
-sustained heat ≥ 2 cycles (10+ sec)
-
+---text
+# sustained heat ≥ 2 cycles (10+ sec)
 T ≥ 44°C  →  50% OPP  (975 / 1157 / 1365 MHz)
 T ≥ 42°C  →  65% OPP  (1267 / 1504 / 1774 MHz)
 T ≥ 40°C  →  80% OPP  (1560 / 1851 / 2184 MHz)
 T < 40°C  →  full OPP (1950 / 2314 / 2730 MHz)
-
 ---
 
 ---
 
-## 03 — Sysfs Interface: Nodes Read & Written
+03 — Sysfs Interface: Nodes Read & Written
 
-| Path | Description |
-|------|-------------|
-| `/sys/class/thermal/thermal_zone5/temp` | Skin / PCB temp (primary decision) |
-| `/sys/class/thermal/thermal_zone6/temp` | Battery temperature fallback |
-| `/sys/class/thermal/thermal_zone{0,1,2}/temp` | CPU clusters (LITTLE, MID, BIG) |
-| `/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq` | Hard frequency cap (cluster 0/4/6) |
-| `/sys/.../schedutil/up_rate_limit_us` | Frequency ramp-up aggressiveness |
-| `/sys/class/power_supply/battery/status` | Charging detection (status=Charging) |
-| `/sys/class/backlight/*/brightness` | Screen state (probes panel0 / s6e3ha9 etc.) |
-| `/proc/sys/vm/swappiness` | Swap tendency — raised in idle/pocket modes |
-
----
-
-## 04 — Fork Changes: ArtisanROM Adaptations
-
-| Area | Upstream assumption | ArtisanROM reality & fix |
-|------|---------------------|--------------------------|
-| **compact_memory** | Written each mode switch | ArtisanKRNL (Linux 5.x+) removed `/proc/sys/vm/compact_memory` – node completely dropped from fork. |
-| **Governor detection** | Probed interactive/ondemand/schedutil | Upstreamed kernel ships schedutil only; interactive/ondemand removed. Simplified to schedutil exclusive, added rate_limit_us fallback. |
-| **Thermal zone probing** | Probed zones 0–9 (assumed HAL renumbering) | ArtisanROM registers zones directly from DTS: zone5=skin, zone6=battery, zones0-2=CPU clusters. Hardcoded – probing removed. |
-| **Screen detection** | backlight → SurfaceFlinger grep → dumpsys | SF format unreliable; now uses backlight node (probes panel0-backlight, s6e3ha9, s6e3hc2) + dumpsys power fallback. |
-| **Backlight path** | Only panel0-backlight | S10+ uses s6e3ha9 AMOLED driver; module auto-probes 4 panel paths and logs result. |
-| **Log location** | `/data/local/tmp/` | KernelSU-Next → preferred path `/data/adb/modules/PrimeThermalArtisanROM/` (avoids SELinux strict context). |
-| **Samsung thermal daemon** | Potential sec_ts conflict | ArtisanROM is heavily DeKnoxed; Samsung thermal daemon stripped – sysfs writes uncontested. |
+Path Description
+/sys/class/thermal/thermal_zone5/temp Skin / PCB temp (primary decision)
+/sys/class/thermal/thermal_zone6/temp Battery temperature fallback
+/sys/class/thermal/thermal_zone{0,1,2}/temp CPU clusters (LITTLE, MID, BIG)
+/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq Hard frequency cap (cluster 0/4/6)
+/sys/.../schedutil/up_rate_limit_us Frequency ramp-up aggressiveness
+/sys/class/power_supply/battery/status Charging detection (status=Charging)
+/sys/class/backlight/*/brightness Screen state (probes panel0 / s6e3ha9 etc.)
+/proc/sys/vm/swappiness Swap tendency — raised in idle/pocket modes
 
 ---
 
-## 05 — Logging: Real‑time Monitoring
+04 — Fork Changes: ArtisanROM Adaptations
 
-Log rotated at 1000 lines.  
-**Primary path:** `/data/adb/modules/PrimeThermalArtisanROM/thermal.log`  
-**Fallback path:** `/data/local/tmp/s10_thermal.log`
+Area Upstream assumption ArtisanROM reality & fix
+compact_memory Written each mode switch ArtisanKRNL (Linux 5.x+) removed /proc/sys/vm/compact_memory – node completely dropped from fork.
+Governor detection Probed interactive/ondemand/schedutil Upstreamed kernel ships schedutil only; interactive/ondemand removed. Simplified to schedutil exclusive, added rate_limit_us fallback.
+Thermal zone probing Probed zones 0–9 (assumed HAL renumbering) ArtisanROM registers zones directly from DTS: zone5=skin, zone6=battery, zones0-2=CPU clusters. Hardcoded – probing removed.
+Screen detection backlight → SurfaceFlinger grep → dumpsys SF format unreliable; now uses backlight node (probes panel0-backlight, s6e3ha9, s6e3hc2) + dumpsys power fallback.
+Backlight path Only panel0-backlight S10+ uses s6e3ha9 AMOLED driver; module auto-probes 4 panel paths and logs result.
+Log location /data/local/tmp/ KernelSU-Next → preferred path /data/adb/modules/PrimeThermalArtisanROM/ (avoids SELinux strict context).
+Samsung thermal daemon Potential sec_ts conflict ArtisanROM is heavily DeKnoxed; Samsung thermal daemon stripped – sysfs writes uncontested.
 
-### Log sample
+---
 
-```
+05 — Logging: Real‑time Monitoring
 
+Log rotated at 1000 lines.
+Primary path: /data/adb/modules/PrimeThermalArtisanROM/thermal.log
+Fallback path: /data/local/tmp/s10_thermal.log
+
+Log sample
+
+```text
 [INIT] PrimeThermal vY.1 started PID=1337
 [TWEAKS] PERF applied
 [09:00:06] ACTIVE Skin=28C Core=31C Load=22% F6=2730000
 [STATE] ACTIVE → LIGHT (Skin=39C load=12%)
 [09:01:43] LIGHT  Skin=37C Core=41C freq_cap=1700000
-
 ```
 
-**Tail log in real-time:**
+Tail log in real-time:
+
 ```bash
 su -c 'tail -f /data/adb/modules/PrimeThermalArtisanROM/thermal.log'
 ```
@@ -116,9 +110,10 @@ su -c 'tail -f /data/adb/modules/PrimeThermalArtisanROM/thermal.log'
 3. Open KernelSU app → Modules → tap ➕ → select the ZIP file.
 4. Wait for installation → Reboot.
 5. After reboot, verify log:
-   ```bash
-   su -c 'cat /data/adb/modules/PrimeThermalArtisanROM/thermal.log'
-   ```
+
+```bash
+su -c 'cat /data/adb/modules/PrimeThermalArtisanROM/thermal.log'
+```
 
 Uninstall: Disable or remove the module in KernelSU → reboot. All sysfs changes are volatile.
 
@@ -133,10 +128,16 @@ This ArtisanROM fork preserves upstream credit while adapting sysfs paths, gover
 
 Links:
 
-· ↗ Upstream Repository
-· ↗ Telegram
+· Upstream Repository (igoraotel-a11y/PrimeThermal)
+· PrimeThermal Telegram Channel
 
-Additional thanks: ArtisanROM, Android-Artisan (kernel), KernelSU-Next, CruelKernel, UN1CA
+Additional thanks:
+
+· ArtisanROM
+· Android-Artisan (kernel)
+· KernelSU-Next
+· CruelKernel
+· UN1CA / KnoxPatch
 
 ---
 
@@ -148,6 +149,7 @@ This module modifies CPU frequency limits and schedutil parameters in real time.
 
 PrimeThermal vY.1-ArtisanROM · Fork for SM-G975F · Exynos 9820
 OneUI 8 / Android 16 · KernelSU-Next
-GPL-3.0 · Upstream: igoraotel-a11y/PrimeThermal
 
-```
+License: GPL-3.0
+Upstream: igoraotel-a11y/PrimeThermal
+
