@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>PrimeThermal</title>
+    <style>
+        :root {
+            --bg: #101014;
+            --surface: #18181c;
+            --surface2: #222228;
+            --border: #2a2a32;
+            --accent: #4dabf7;
+            --text: #e8e8f0;
+            --text-sub: #888896;
+            --text-dim: #46464f;
+            --red: #ff6b6b;
+            --green: #51cf66;
+            --check: #2196F3;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg); color: var(--text); font-size: 14px;
+        }
+
+        /* ── Header ──────────────────────────────────────────────── */
+        .header {
+            padding: 20px 16px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .header-title { font-size: 22px; font-weight: 700; color: var(--accent); }
+        .header-sub { font-size: 12px; color: var(--text-sub); margin-top: 3px; }
+
+        /* ── Sections ──────────────────────────────────────────────── */
+        .section { padding: 0 16px; margin-top: 18px; }
+        .section-label {
+            font-size: 11px; font-weight: 600; letter-spacing: 0.9px;
+            text-transform: uppercase; color: var(--text-dim);
+            margin-bottom: 8px; padding-left: 4px;
+        }
+        .card { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+
+        /* ── Settings ─────────────────────────────────────────────── */
+        .setting-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; gap: 12px; border-bottom: 1px solid var(--border);
+        }
+        .setting-row:last-child { border-bottom: none; }
+        .setting-name { font-size: 14px; color: var(--text); font-weight: 500; }
+        .setting-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+        select {
+            background: var(--surface2); color: var(--text);
+            border: 1px solid var(--border); border-radius: 8px;
+            padding: 8px 10px; font-size: 13px; min-width: 120px; outline: none;
+        }
+        .toggle { position: relative; display: inline-block; width: 48px; height: 28px; flex-shrink: 0; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; inset: 0; cursor: pointer;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 28px; transition: 0.2s;
+        }
+        .slider:before {
+            content: ""; position: absolute; width: 20px; height: 20px;
+            left: 3px; top: 3px; background: var(--text-sub); border-radius: 50%; transition: 0.2s;
+        }
+        input:checked + .slider { background: var(--green); border-color: var(--green); }
+        input:checked + .slider:before { transform: translateX(20px); background: #fff; }
+
+        /* ── Search bar ───────────────────────────────────────────── */
+        .search-bar {
+            padding: 10px 12px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 5;
+        }
+        .search-bar input {
+            width: 100%; background: var(--surface2); color: var(--text);
+            border: 1px solid var(--border); border-radius: 8px;
+            padding: 9px 14px; font-size: 13px; outline: none;
+        }
+        .search-bar input::placeholder { color: var(--text-dim); }
+        .search-bar input:focus { border-color: var(--accent); }
+
+        /* ── App list (Zygisk Detach style) ─────────────────────── */
+        .app-list { background: var(--surface); }
+        .app-row {
+            display: flex; align-items: center;
+            padding: 13px 16px; border-bottom: 1px solid var(--border);
+            cursor: pointer; gap: 12px; user-select: none;
+        }
+        .app-row:last-child { border-bottom: none; }
+        .app-row:active { background: rgba(255,255,255,0.03); }
+        .app-pkg { font-size: 13px; color: var(--text); flex: 1; min-width: 0; word-break: break-all; line-height: 1.35; }
+
+        /* Checkbox (Zygisk Detach style — square, blue when checked) */
+        .cb-wrap { flex-shrink: 0; width: 22px; height: 22px; position: relative; }
+        .cb-wrap input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 2; }
+        .cb-box {
+            width: 22px; height: 22px; border-radius: 4px;
+            border: 2px solid var(--text-sub);
+            background: transparent; transition: 0.15s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .cb-wrap input:checked ~ .cb-box {
+            background: var(--check); border-color: var(--check);
+        }
+        .cb-wrap input:checked ~ .cb-box::after {
+            content: ""; display: block;
+            width: 5px; height: 10px;
+            border: 2px solid #fff; border-top: none; border-left: none;
+            transform: rotate(45deg) translate(-1px, -1px);
+        }
+
+        /* ── Save bar ─────────────────────────────────────────────── */
+        .save-bar {
+            position: sticky; bottom: 0;
+            background: var(--bg); border-top: 1px solid var(--border);
+            padding: 12px 16px; display: none; align-items: center; gap: 12px;
+        }
+        .save-bar.visible { display: flex; }
+        .save-count { font-size: 13px; color: var(--text-sub); flex: 1; }
+        .btn-save {
+            background: var(--accent); color: #000; font-weight: 700;
+            border: none; border-radius: 10px; padding: 11px 28px;
+            font-size: 14px; cursor: pointer;
+        }
+        .btn-save:active { opacity: 0.85; }
+
+        /* ── States ───────────────────────────────────────────────── */
+        .state-msg { padding: 32px 16px; text-align: center; color: var(--text-dim); font-size: 13px; }
+
+        /* ── Toast ────────────────────────────────────────────────── */
+        #toast {
+            position: fixed; bottom: 80px; left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--surface2); color: var(--text);
+            border: 1px solid var(--border); border-radius: 24px;
+            padding: 10px 20px; font-size: 13px; white-space: nowrap;
+            transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+            pointer-events: none; z-index: 99;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+
+        .spacer { height: 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-title">PrimeThermal</div>
+        <div class="header-sub">vY.1.1-ArtisanROM · SM-G975F</div>
+    </div>
+
+    <div class="section">
+        <div class="section-label">Operating Mode</div>
+        <div class="card">
+            <div class="setting-row">
+                <div>
+                    <div class="setting-name">Mode</div>
+                    <div class="setting-desc">auto · gaming · powersave</div>
+                </div>
+                <select id="mode-select" onchange="saveSetting('MODE', this.value)">
+                    <option value="auto">Auto</option>
+                    <option value="gaming">Gaming</option>
+                    <option value="powersave">Powersave</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-name">Logging</div>
+                    <div class="setting-desc">Write to thermal.log</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="log-toggle"
+                        onchange="saveSetting('ENABLE_LOG', this.checked ? 'true' : 'false')">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" style="margin-top:20px;">
+        <div class="section-label">Gaming Packages</div>
+    </div>
+
+    <!-- Sticky search bar -->
+    <div class="search-bar">
+        <input type="text" id="search" placeholder="Search"
+            oninput="filterList(this.value)"
+            autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    </div>
+
+    <!-- App list (Zygisk Detach style) -->
+    <div class="app-list card" id="app-list" style="margin: 0 16px; border-radius: 12px;">
+        <div class="state-msg">Loading installed apps…</div>
+    </div>
+
+    <!-- Sticky save bar -->
+    <div class="save-bar" id="save-bar">
+        <span class="save-count" id="save-count"></span>
+        <button class="btn-save" onclick="saveChanges()">Save</button>
+    </div>
+
+    <div class="spacer"></div>
+    <div id="toast"></div>
+
+    <script>
+    const CFG = "/data/adb/modules/PrimeThermalArtisanROM/config.sh";
+    let _cbId = 0;
+
+    // ── KSU-Next bridge ─────────────────────────────────────────────────────
+    // KSU-Next requires a NAMED global function as the callback — the Android
+    // JavascriptInterface cannot serialize anonymous/arrow functions.
+    // Run execs SEQUENTIALLY (not parallel) to avoid callback slot collisions.
+    function exec(cmd) {
+        return new Promise(resolve => {
+            const name = '__pt' + (++_cbId);
+            window[name] = function(code, stdout, stderr) {
+                delete window[name];
+                resolve(stdout || '');
+            };
+            try {
+                if (window.ksu && window.ksu.exec) {
+                    window.ksu.exec(cmd, name);
+                } else if (window.mmrl && window.mmrl.exec) {
+                    window.mmrl.exec(cmd, function(res) {
+                        delete window[name];
+                        resolve(typeof res === 'object' ? (res.stdout || '') : (res || ''));
+                    });
+                } else {
+                    // Dev fallback: stub with empty string
+                    delete window[name];
+                    resolve('');
+                }
+            } catch(e) {
+                delete window[name];
+                resolve('');
+            }
+        });
+    }
+
+    // ── Toast ──────────────────────────────────────────────────────────────
+    let _tt;
+    function toast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(_tt);
+        _tt = setTimeout(() => el.classList.remove('show'), 2000);
+    }
+
+    // ── State ──────────────────────────────────────────────────────────────
+    let _allApps    = [];   // full list from pm list packages
+    let _gaming     = new Set();  // currently saved gaming packages
+    let _pending    = new Set();  // working selection (modified by checkboxes)
+    let _dirty      = false;
+
+    // ── Config helpers ─────────────────────────────────────────────────────
+    function readVar(src, key, fallback) {
+        const m = src.match(new RegExp('^' + key + '=([^\\n#]*)', 'm'));
+        return m ? m[1].trim().replace(/^["']|["']$/g, '') : (fallback || '');
+    }
+    function readPkgs(src) {
+        const m = src.match(/GAMING_PACKAGES="([\s\S]*?)"/);
+        return m ? m[1].trim().split(/\s+/).filter(Boolean) : [];
+    }
+
+    // ── Render app list (Zygisk Detach style) ──────────────────────────────
+    function renderList(filter) {
+        const el = document.getElementById('app-list');
+        const q = (filter || '').toLowerCase().trim();
+
+        const visible = q
+            ? _allApps.filter(p => p.includes(q))
+            : _allApps;
+
+        if (!visible.length) {
+            el.innerHTML = q
+                ? '<div class="state-msg">No apps match "' + q + '"</div>'
+                : '<div class="state-msg">No installed apps found</div>';
+            return;
+        }
+
+        el.innerHTML = visible.map(pkg => {
+            const checked = _pending.has(pkg);
+            return `<div class="app-row" onclick="toggle('${pkg}')">
+                <span class="app-pkg">${pkg}</span>
+                <label class="cb-wrap" onclick="event.stopPropagation()">
+                    <input type="checkbox" ${checked ? 'checked' : ''}
+                        onchange="toggle('${pkg}', this.checked)">
+                    <span class="cb-box"></span>
+                </label>
+            </div>`;
+        }).join('');
+    }
+
+    function filterList(q) { renderList(q); }
+
+    // ── Toggle a package ────────────────────────────────────────────────────
+    function toggle(pkg, val) {
+        if (val === undefined) val = !_pending.has(pkg);
+        if (val) _pending.add(pkg);
+        else     _pending.delete(pkg);
+
+        // Update just this row's checkbox to avoid re-rendering the whole list
+        // (re-render would lose scroll position)
+        const rows = document.querySelectorAll('.app-row');
+        rows.forEach(row => {
+            if (row.querySelector('.app-pkg').textContent === pkg) {
+                const cb = row.querySelector('input[type=checkbox]');
+                if (cb) cb.checked = val;
+                const box = row.querySelector('.cb-box');
+                // force style update via re-read (checkbox CSS handles it)
+            }
+        });
+
+        _dirty = !setsEqual(_pending, _gaming);
+        updateSaveBar();
+    }
+
+    function setsEqual(a, b) {
+        if (a.size !== b.size) return false;
+        for (const x of a) if (!b.has(x)) return false;
+        return true;
+    }
+
+    function updateSaveBar() {
+        const bar   = document.getElementById('save-bar');
+        const count = document.getElementById('save-count');
+        bar.classList.toggle('visible', _dirty);
+        count.textContent = _pending.size + ' package' + (_pending.size !== 1 ? 's' : '') + ' selected';
+    }
+
+    // ── Save ───────────────────────────────────────────────────────────────
+    async function saveChanges() {
+        const pkgs = [..._pending];
+        const list = pkgs.join(' ');
+        await exec("printf 'GAMING_PACKAGES=\"%s\"\\n' '" + list.replace(/'/g, "'\\''") + "' > /tmp/_pt_pkg");
+        const awk =
+            "awk 'BEGIN{b=0}" +
+            "/^GAMING_PACKAGES=\"[^\"]*\"/{system(\"cat /tmp/_pt_pkg\");next}" +
+            "/^GAMING_PACKAGES=\"/{b=1;system(\"cat /tmp/_pt_pkg\");next}" +
+            "b&&/^\"/{ b=0;next}" +
+            "b{next}" +
+            "{print}' " + CFG + " > /tmp/_pt_cfg && cat /tmp/_pt_cfg > " + CFG;
+        await exec(awk);
+        _gaming = new Set(_pending);
+        _dirty  = false;
+        updateSaveBar();
+        toast('Saved — ' + pkgs.length + ' packages');
+    }
+
+    // ── Settings save ──────────────────────────────────────────────────────
+    async function saveSetting(key, value) {
+        const esc = value.replace(/[|\\&]/g, '\\$&');
+        await exec("sed -i 's|^" + key + "=.*|" + key + "=" + esc + "|' " + CFG);
+        toast('Saved');
+    }
+
+    // ── Load (sequential execs to avoid KSU callback slot collision) ────────
+    async function load() {
+        // 1. Read config first
+        const src = await exec('cat ' + CFG);
+
+        // 2. Apply settings
+        document.getElementById('mode-select').value = readVar(src, 'MODE', 'auto');
+        document.getElementById('log-toggle').checked = readVar(src, 'ENABLE_LOG', 'true') === 'true';
+
+        // 3. Parse current gaming packages
+        const pkgs = readPkgs(src);
+        _gaming  = new Set(pkgs);
+        _pending = new Set(pkgs);
+
+        // 4. Fetch installed apps (sequential, after config is done)
+        const raw = await exec("pm list packages 2>/dev/null | sed 's/package://' | sort");
+        _allApps = raw.trim().split('\n').filter(Boolean);
+
+        // 5. Ensure gaming packages that aren't installed still appear at top
+        const extras = pkgs.filter(p => !_allApps.includes(p));
+        if (extras.length) _allApps = [...extras, ..._allApps];
+
+        renderList('');
+        updateSaveBar();
+    }
+
+    load();
+    </script>
+</body>
+</html>
