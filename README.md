@@ -105,15 +105,6 @@ cat /data/adb/modules/PrimeThermalArtisanROM/thermal.err
 
 The entire core of this module — the state machine (IDLE / LIGHT / ACTIVE / POCKET / CHARGING), dual thermal sensor logic (skin + core), schedutil tuning, frequency cap tables, log rotation, and the overall shell-daemon architecture — is the work of **igoraotel-a11y**, known in the community as **Prime1337**. This ArtisanROM fork would not exist without that upstream.
 
-sofikuw is also a credited collaborator on the upstream v1.2 release ("Technical improvements by @sofikuw").
-
----
-
-### ArtisanROM fork — sofikuw
-**https://github.com/sofikuw/PrimeThermal-vY.1-ArtisanROM-1**
-
-Rebuilt for SM-G975F / ArtisanROM Quant / KernelSU-Next / ArtisanKRNL (Linux 5.x). Added GAMING state, BURST detection, CHARGING state, per-mode HC triggers, hard abort, WebUI scaffolding, and the vY.1.1.x responsiveness hotfixes.
-
 ---
 
 ### Third-party
