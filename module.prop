@@ -1,0 +1,6 @@
+id=PrimeThermalArtisanROM
+name=PrimeThermal | ArtisanROM Quant Fork
+version=vY.1.2-ArtisanROM
+versionCode=Y120
+author=sofikuw
+description=Adaptive Thermal & CPU Manager for S10 Series (S10e/S10/S10+, Exynos 9820) — vY.1.2: Encore gamelist, min_freq floors, SF tweaks, I/O tuning, bootloop guard, Game Manager API, WebUI

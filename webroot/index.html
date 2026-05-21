@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrimeThermal</title>
+<style>
+  :root {
+    --bg:       #0f0f0f;
+    --surface:  #1a1a1a;
+    --card:     #242424;
+    --border:   #2e2e2e;
+    --primary:  #7c9eff;
+    --accent:   #ff7c7c;
+    --green:    #6fcf7c;
+    --yellow:   #f5c842;
+    --text:     #e8e8e8;
+    --muted:    #888;
+    --radius:   12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    padding: 16px;
+    padding-bottom: 32px;
+  }
+  h1 { font-size: 18px; font-weight: 700; color: var(--primary); }
+  h2 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase;
+       letter-spacing: 0.08em; margin-bottom: 10px; }
+  .header { display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .version { font-size: 12px; color: var(--muted); }
+  .card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--surface); border-radius: 8px; padding: 10px 12px; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .stat-value { font-size: 20px; font-weight: 700; }
+  .state-badge {
+    display: inline-block; padding: 4px 12px; border-radius: 20px;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.05em;
+  }
+  .s-GAMING   { background: #7c9eff22; color: var(--primary); border: 1px solid var(--primary); }
+  .s-ACTIVE   { background: #f5c84222; color: var(--yellow);  border: 1px solid var(--yellow);  }
+  .s-LIGHT    { background: #6fcf7c22; color: var(--green);   border: 1px solid var(--green);   }
+  .s-IDLE     { background: #88888822; color: var(--muted);   border: 1px solid var(--border);  }
+  .s-POCKET   { background: #33333322; color: #555;           border: 1px solid var(--border);  }
+  .s-POWERSAVE{ background: #ff7c7c22; color: var(--accent);  border: 1px solid var(--accent);  }
+  .s-CHARGING { background: #f5c84222; color: var(--yellow);  border: 1px solid var(--yellow);  }
+  .s-UNKNOWN  { background: #88888822; color: var(--muted);   border: 1px solid var(--border);  }
+  .mode-row { display: flex; gap: 8px; }
+  .mode-btn {
+    flex: 1; padding: 10px 0; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .mode-btn.active { background: var(--primary); color: #000; border-color: var(--primary); }
+  .mode-btn:active { opacity: 0.75; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between;
+                padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .toggle-label { font-size: 13px; }
+  .toggle-desc  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .toggle {
+    position: relative; width: 44px; height: 24px;
+    background: var(--border); border-radius: 12px; cursor: pointer;
+    transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle.on { background: var(--primary); }
+  .toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 18px; height: 18px; border-radius: 50%; background: #fff;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 23px; }
+  .log-box {
+    background: #0a0a0a; border-radius: 8px; padding: 10px 12px;
+    height: 200px; overflow-y: auto; font-family: monospace; font-size: 11px;
+    line-height: 1.6; color: #9e9e9e; border: 1px solid var(--border);
+  }
+  .log-line { white-space: pre-wrap; word-break: break-all; }
+  .log-line.gaming   { color: var(--primary); }
+  .log-line.state    { color: var(--yellow);  }
+  .log-line.safety   { color: var(--accent);  }
+  .log-line.init     { color: var(--green);   }
+  .gamelist-box {
+    background: var(--surface); border-radius: 8px; padding: 8px;
+    max-height: 180px; overflow-y: auto; border: 1px solid var(--border);
+  }
+  .pkg-row { display: flex; align-items: center; justify-content: space-between;
+             padding: 6px 8px; border-radius: 6px; }
+  .pkg-row:hover { background: var(--card); }
+  .pkg-name { font-size: 12px; font-family: monospace; }
+  .del-btn {
+    background: none; border: none; color: var(--accent); font-size: 16px;
+    cursor: pointer; padding: 0 4px; line-height: 1;
+  }
+  .add-row { display: flex; gap: 8px; margin-top: 10px; }
+  .add-input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 12px;
+    font-family: monospace; outline: none;
+  }
+  .add-input:focus { border-color: var(--primary); }
+  .add-btn, .save-btn, .refresh-btn {
+    background: var(--primary); color: #000; border: none; border-radius: 8px;
+    padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .save-btn { background: var(--green); width: 100%; margin-top: 10px; padding: 11px; }
+  .refresh-btn { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+  .status-bar { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .floor-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .floor-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .floor-input {
+    width: 64px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 8px; color: var(--text);
+    font-size: 13px; text-align: center; outline: none;
+  }
+  .floor-input:focus { border-color: var(--primary); }
+  .floor-unit { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>PrimeThermal</h1>
+    <div class="version">vY.1.2-ArtisanROM · S10 Series · Exynos 9820</div>
+  </div>
+  <button class="refresh-btn" onclick="refresh()">↻ Refresh</button>
+</div>
+
+<!-- Status -->
+<div class="card">
+  <h2>Current Status</h2>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+    <span id="state-badge" class="state-badge s-UNKNOWN">—</span>
+    <span id="last-line" style="font-size:11px;color:var(--muted);font-family:monospace;"></span>
+  </div>
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-label">Skin Temp</div><div class="stat-value" id="skin">—</div></div>
+    <div class="stat"><div class="stat-label">Core Temp</div><div class="stat-value" id="core">—</div></div>
+    <div class="stat"><div class="stat-label">CPU Load (avg)</div><div class="stat-value" id="load">—</div></div>
+    <div class="stat"><div class="stat-label">HC Counter</div><div class="stat-value" id="hc">—</div></div>
+  </div>
+  <div class="status-bar" id="status-bar">Loading…</div>
+</div>
+
+<!-- Mode -->
+<div class="card">
+  <h2>Operating Mode</h2>
+  <div class="mode-row">
+    <button class="mode-btn" id="btn-auto"      onclick="setMode('auto')">Auto</button>
+    <button class="mode-btn" id="btn-gaming"    onclick="setMode('gaming')">Gaming</button>
+    <button class="mode-btn" id="btn-powersave" onclick="setMode('powersave')">Powersave</button>
+  </div>
+</div>
+
+<!-- Toggles -->
+<div class="card">
+  <h2>Feature Toggles</h2>
+  <div class="toggle-row">
+    <div><div class="toggle-label">SF Latency Tweaks</div>
+    <div class="toggle-desc">Reduce display pipeline jitter in gaming</div></div>
+    <div class="toggle" id="tog-SF_TWEAKS" onclick="toggleCfg('ENABLE_SF_TWEAKS',this)"></div>
+  </div>
+  <div class="toggle-row">
+    <div><div class="toggle-label">I/O Scheduler Tuning</div>
+    <div class="toggle-desc">deadline in gaming, cfq in idle</div></div>
+    <div class="toggle" id="tog-IO_TUNING" onclick="toggleCfg('ENABLE_IO_TUNING',this)"></div>
+  </div>
+  <div class="toggle-row">
+    <div><div class="toggle-label">sched_boost (Samsung EAS)</div>
+    <div class="toggle-desc">Bias tasks toward big cores in gaming</div></div>
+    <div class="toggle" id="tog-SCHED_BOOST" onclick="toggleCfg('ENABLE_SCHED_BOOST',this)"></div>
+  </div>
+  <div class="toggle-row">
+    <div><div class="toggle-label">Game Manager API</div>
+    <div class="toggle-desc">cmd game set --mode performance on entry</div></div>
+    <div class="toggle" id="tog-GAME_CMD" onclick="toggleCfg('ENABLE_GAME_CMD',this)"></div>
+  </div>
+  <div class="floor-row">
+    <div class="floor-label">Gaming min-freq floor</div>
+    <input class="floor-input" id="floor-input" type="number" min="0" max="100" value="50">
+    <span class="floor-unit">% of max OPP</span>
+  </div>
+</div>
+
+<!-- Log -->
+<div class="card">
+  <h2>Thermal Log <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">(last 60 lines)</span></h2>
+  <div class="log-box" id="log-box"></div>
+</div>
+
+<!-- Gamelist -->
+<div class="card">
+  <h2>Gaming Packages (<span id="pkg-count">0</span>)</h2>
+  <input class="add-input" id="pkg-search" placeholder="Search packages…" autocomplete="off"
+         spellcheck="false" oninput="filterPkgs(this.value)"
+         style="width:100%;margin-bottom:8px;">
+  <div class="gamelist-box" id="pkg-list"></div>
+  <div class="add-row" style="margin-top:10px;">
+    <input class="add-input" id="pkg-input" placeholder="com.example.game — add new package" autocomplete="off" spellcheck="false">
+    <button class="add-btn" onclick="addPkg()">Add</button>
+  </div>
+  <button class="save-btn" onclick="savePkgs()">Save Gamelist & Floor</button>
+</div>
+
+<script>
+const MOD = '/data/adb/modules/PrimeThermalArtisanROM';
+const CFG = MOD + '/config.sh';
+const LOG = MOD + '/thermal.log';
+
+// ── exec bridge ─────────────────────────────────────────────────────────────
+// KSU/KSU-Next WebView bridges require the callback to be a named global
+// function passed as a string — anonymous function references are silently
+// ignored by the Android JavascriptInterface.
+var _cbSeq = 0;
+
+function exec(cmd, cb) {
+  if (typeof ksu !== 'undefined' && ksu.exec) {
+    var id = '__pt_cb_' + (++_cbSeq);
+    window[id] = function(code, out, err) {
+      try { delete window[id]; } catch(e) {}
+      if (cb) cb(parseInt(code) || 0, out || '', err || '');
+    };
+    ksu.exec(cmd, '{}', id);
+  } else if (typeof mmrl !== 'undefined' && mmrl.exec) {
+    var id2 = '__pt_cb_' + (++_cbSeq);
+    window[id2] = function(code, out, err) {
+      try { delete window[id2]; } catch(e) {}
+      if (cb) cb(parseInt(code) || 0, out || '', err || '');
+    };
+    mmrl.exec(cmd, id2);
+  } else {
+    setTimeout(function() {
+      if (cb) cb(-1, '', 'No KSU/MMRL bridge found');
+    }, 0);
+  }
+}
+
+// ── State ────────────────────────────────────────────────────────────────────
+var pkgs = [];
+var cfgValues = {};
+
+// ── Refresh ──────────────────────────────────────────────────────────────────
+function refresh() {
+  setStatus('Refreshing…');
+  loadLog();
+  loadConfig();
+}
+
+function loadLog() {
+  exec('tail -n 60 ' + LOG + ' 2>/dev/null || echo "(log not found — is the daemon running?)"', function(code, out, err) {
+    var box = document.getElementById('log-box');
+    var lines = (out || err || '').trim().split('\n');
+    box.innerHTML = '';
+    lines.forEach(function(line) {
+      var div = document.createElement('div');
+      div.className = 'log-line';
+      if (line.indexOf('[GAMING]') !== -1 || line.indexOf('→GAMING') !== -1) div.classList.add('gaming');
+      else if (line.indexOf('[STATE]') !== -1)  div.classList.add('state');
+      else if (line.indexOf('[SAFETY]') !== -1) div.classList.add('safety');
+      else if (line.indexOf('[INIT]') !== -1)   div.classList.add('init');
+      div.textContent = line;
+      box.appendChild(div);
+    });
+    box.scrollTop = box.scrollHeight;
+
+    var data = null;
+    for (var i = lines.length - 1; i >= 0; i--) {
+      if (/^\[\d{2}:\d{2}:\d{2}\]/.test(lines[i])) { data = lines[i]; break; }
+    }
+    if (data) parseStatusLine(data);
+    setStatus('Updated ' + new Date().toLocaleTimeString());
+  });
+}
+
+function parseStatusLine(line) {
+  var stateMatch = line.match(/\] (\w+) /);
+  var skinMatch  = line.match(/Sk=(\d+)C/);
+  var coreMatch  = line.match(/Co=(\d+)C/);
+  var loadMatch  = line.match(/L=(\d+)%/);
+  var hcMatch    = line.match(/H=(\d+)/);
+  var modeMatch  = line.match(/M=(\w+)/);
+
+  if (stateMatch) {
+    var st = stateMatch[1];
+    var badge = document.getElementById('state-badge');
+    badge.textContent = st;
+    badge.className = 'state-badge s-' + st;
+  }
+  if (skinMatch)  setVal('skin', skinMatch[1] + '°C');
+  if (coreMatch)  setVal('core', coreMatch[1] + '°C');
+  if (loadMatch)  setVal('load', loadMatch[1] + '%');
+  if (hcMatch)    setVal('hc',   hcMatch[1]);
+  if (modeMatch)  highlightMode(modeMatch[1]);
+  document.getElementById('last-line').textContent = line.slice(0, 80);
+}
+
+function setVal(id, v) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = v;
+}
+
+function setStatus(msg) {
+  var el = document.getElementById('status-bar');
+  if (el) el.textContent = msg;
+}
+
+function loadConfig() {
+  // Step 1: read simple single-line key=value settings via grep.
+  // GAMING_PACKAGES is a multi-line shell variable and is intentionally
+  // excluded here — it's read separately by sourcing the file (step 2).
+  var grepCmd = 'grep -E "^(MODE|ENABLE_SF_TWEAKS|ENABLE_IO_TUNING|ENABLE_SCHED_BOOST|ENABLE_GAME_CMD|GAMING_MIN_FLOOR_PCT)=" ' + CFG + ' 2>/dev/null';
+  exec(grepCmd, function(code, out) {
+    cfgValues = {};
+    (out || '').split('\n').forEach(function(line) {
+      var m = line.match(/^(\w+)=(.*)$/);
+      if (m) cfgValues[m[1]] = m[2].replace(/^["']\s*|["']\s*$/g, '').trim();
+    });
+
+    highlightMode(cfgValues.MODE || 'auto');
+    setToggle('tog-SF_TWEAKS',   cfgValues.ENABLE_SF_TWEAKS   !== 'false');
+    setToggle('tog-IO_TUNING',   cfgValues.ENABLE_IO_TUNING   !== 'false');
+    setToggle('tog-SCHED_BOOST', cfgValues.ENABLE_SCHED_BOOST !== 'false');
+    setToggle('tog-GAME_CMD',    cfgValues.ENABLE_GAME_CMD    !== 'false');
+
+    var fl = cfgValues.GAMING_MIN_FLOOR_PCT;
+    if (fl) document.getElementById('floor-input').value = fl;
+  });
+
+  // Step 2: source config.sh and printf each package on its own line.
+  // This correctly expands the multi-line GAMING_PACKAGES variable no
+  // matter how many entries it contains (530+ from the Encore gamelist).
+  var pkgCmd = 'sh -c \'. ' + CFG + ' 2>/dev/null && printf "%s\\n" $GAMING_PACKAGES\'';
+  exec(pkgCmd, function(code, out) {
+    pkgs = (out || '').trim().split('\n').filter(function(p) {
+      return p && p.indexOf('.') !== -1;  // basic sanity: must look like a package name
+    });
+    renderPkgs();
+  });
+}
+
+function highlightMode(mode) {
+  ['auto','gaming','powersave'].forEach(function(m) {
+    document.getElementById('btn-'+m).classList.toggle('active', m === mode.toLowerCase());
+  });
+}
+
+function setToggle(id, on) {
+  var el = document.getElementById(id);
+  if (el) el.classList.toggle('on', on);
+}
+
+// ── Mode change ───────────────────────────────────────────────────────────────
+function setMode(mode) {
+  exec("sed -i 's/^MODE=.*/MODE=" + mode + "/' " + CFG, function(rc) {
+    if (rc === 0) {
+      highlightMode(mode);
+      setStatus('Mode → ' + mode + '. Reboot to apply.');
+    } else {
+      setStatus('Write failed (rc=' + rc + '). Check module path.');
+    }
+  });
+}
+
+// ── Toggle change ─────────────────────────────────────────────────────────────
+function toggleCfg(key, el) {
+  var newVal = el.classList.contains('on') ? 'false' : 'true';
+  exec("sed -i 's/^" + key + "=.*/" + key + "=" + newVal + "/' " + CFG, function(rc) {
+    if (rc === 0) {
+      el.classList.toggle('on');
+      setStatus(key + ' → ' + newVal);
+    } else {
+      setStatus('Write failed (rc=' + rc + ')');
+    }
+  });
+}
+
+// ── Gamelist ─────────────────────────────────────────────────────────────────
+var _filterQ = '';
+
+function filterPkgs(q) {
+  _filterQ = (q || '').trim().toLowerCase();
+  renderPkgs();
+  // If nothing in the list matches, pre-fill the Add input with the search term
+  // so the user can add it with one tap.
+  var addInput = document.getElementById('pkg-input');
+  var exactQ = (q || '').trim();
+  var hasMatch = pkgs.some(function(p) { return p.toLowerCase().indexOf(_filterQ) !== -1; });
+  if (exactQ && !hasMatch && pkgs.indexOf(exactQ) === -1) {
+    addInput.value = exactQ;
+  } else if (!exactQ) {
+    addInput.value = '';
+  }
+}
+
+function renderPkgs() {
+  var list = document.getElementById('pkg-list');
+  var q = _filterQ;
+  var visible = q
+    ? pkgs.filter(function(p) { return p.toLowerCase().indexOf(q) !== -1; })
+    : pkgs.slice();
+
+  // Count badge: "530" normally, "12 / 530" while filtering
+  document.getElementById('pkg-count').textContent = q
+    ? visible.length + ' / ' + pkgs.length
+    : pkgs.length;
+
+  list.innerHTML = '';
+  if (visible.length === 0 && q) {
+    var empty = document.createElement('div');
+    empty.style.cssText = 'padding:12px 8px;color:var(--muted);font-size:12px;';
+    empty.textContent = 'No match — use the Add input below to add it.';
+    list.appendChild(empty);
+    return;
+  }
+
+  visible.forEach(function(pkg) {
+    // Use the real index in pkgs[] so delete is correct even when filtered
+    var realIdx = pkgs.indexOf(pkg);
+    var row = document.createElement('div');
+    row.className = 'pkg-row';
+    // Highlight matched portion
+    var display = q ? highlightMatch(escHtml(pkg), escHtml(q)) : escHtml(pkg);
+    row.innerHTML =
+      '<span class="pkg-name">' + display + '</span>' +
+      '<button class="del-btn" onclick="delPkg(' + realIdx + ')">×</button>';
+    list.appendChild(row);
+  });
+}
+
+function highlightMatch(text, q) {
+  // Case-insensitive highlight of query inside text (both already HTML-escaped)
+  var lower = text.toLowerCase();
+  var lowerQ = q.toLowerCase();
+  var idx = lower.indexOf(lowerQ);
+  if (idx === -1) return text;
+  return text.slice(0, idx) +
+    '<mark style="background:#7c9eff33;color:var(--primary);border-radius:2px;">' +
+    text.slice(idx, idx + q.length) + '</mark>' +
+    text.slice(idx + q.length);
+}
+
+function addPkg() {
+  var input = document.getElementById('pkg-input');
+  var val = (input.value || '').trim();
+  if (!val || pkgs.indexOf(val) !== -1) { input.value = ''; return; }
+  pkgs.push(val);
+  input.value = '';
+  // Clear filter so the new entry is visible
+  _filterQ = '';
+  var searchEl = document.getElementById('pkg-search');
+  if (searchEl) searchEl.value = '';
+  renderPkgs();
+}
+
+function delPkg(i) {
+  pkgs.splice(i, 1);
+  renderPkgs();
+}
+
+function savePkgs() {
+  var floor = document.getElementById('floor-input').value || '50';
+  var tmp   = MOD + '/config.sh.tmp';
+  var pkgLine = pkgs.join(' ');
+
+  // Update floor value in place
+  var cmdFloor = "sed -i 's/^GAMING_MIN_FLOOR_PCT=.*/GAMING_MIN_FLOOR_PCT=" + floor + "/' " + CFG;
+
+  // Rewrite GAMING_PACKAGES — use awk to handle the multi-line block safely
+  var cmdPkgs = [
+    "awk '",
+    "/^GAMING_PACKAGES=/{",
+    "  print \"GAMING_PACKAGES=\\\"\"",
+    "  n=split(\"" + pkgLine.replace(/"/g, '\\"') + "\", a, \" \")",
+    "  for(i=1;i<=n;i++) print \"  \" a[i]",
+    "  print \"\\\"\"",
+    "  skip=1; next",
+    "}",
+    "skip && /^\"/{skip=0; next}",
+    "skip{next}",
+    "{print}' " + CFG + " > " + tmp + " && mv " + tmp + " " + CFG
+  ].join(' ');
+
+  exec(cmdFloor + ' && ' + cmdPkgs, function(rc) {
+    if (rc === 0) {
+      setStatus('Saved ' + pkgs.length + ' packages · floor ' + floor + '%. Reboot to apply.');
+    } else {
+      // awk may not be available — fall back to sed floor-only save
+      exec(cmdFloor, function(rc2) {
+        setStatus(rc2 === 0
+          ? 'Floor saved (' + floor + '%). Gamelist requires manual edit (awk unavailable).'
+          : 'Save failed (rc=' + rc2 + '). Check module permissions.');
+      });
+    }
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.getElementById('pkg-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') addPkg();
+});
+
+refresh();
+setInterval(loadLog, 10000);
+</script>
+</body>
+</html>
